@@ -8,7 +8,7 @@ use {
   },
   super::*,
   crate::wallet::Wallet,
-  bitcoin::BlockHeader,
+  bitcoin::block::Header,
   bitcoincore_rpc::{json::GetBlockHeaderResult, Client},
   chrono::SubsecRound,
   indicatif::{ProgressBar, ProgressStyle},
@@ -616,7 +616,7 @@ impl Index {
     }
   }
 
-  pub(crate) fn block_header(&self, hash: BlockHash) -> Result<Option<BlockHeader>> {
+  pub(crate) fn block_header(&self, hash: BlockHash) -> Result<Option<Header>> {
     self.client.get_block_header(&hash).into_option()
   }
 
@@ -2726,30 +2726,30 @@ mod tests {
         .push_opcode(opcodes::OP_FALSE)
         .push_opcode(opcodes::all::OP_IF)
         .push_slice(b"ord")
-        .push_slice(&[1])
+        .push_slice([1])
         .push_slice(b"text/plain;charset=utf-8")
-        .push_slice(&[])
+        .push_slice([])
         .push_slice(b"foo")
         .push_opcode(opcodes::all::OP_ENDIF)
         .push_opcode(opcodes::OP_FALSE)
         .push_opcode(opcodes::all::OP_IF)
         .push_slice(b"ord")
-        .push_slice(&[1])
+        .push_slice([1])
         .push_slice(b"text/plain;charset=utf-8")
-        .push_slice(&[])
+        .push_slice([])
         .push_slice(b"bar")
         .push_opcode(opcodes::all::OP_ENDIF)
         .push_opcode(opcodes::OP_FALSE)
         .push_opcode(opcodes::all::OP_IF)
         .push_slice(b"ord")
-        .push_slice(&[1])
+        .push_slice([1])
         .push_slice(b"text/plain;charset=utf-8")
-        .push_slice(&[])
+        .push_slice([])
         .push_slice(b"qix")
         .push_opcode(opcodes::all::OP_ENDIF)
         .into_script();
 
-      let witness = Witness::from_vec(vec![script.into_bytes(), Vec::new()]);
+      let witness = Witness::from_slice(&[script.into_bytes(), Vec::new()]);
 
       let txid = context.rpc_server.broadcast_tx(TransactionTemplate {
         inputs: &[(1, 0, 0)],
@@ -2833,30 +2833,30 @@ mod tests {
         .push_opcode(opcodes::OP_FALSE)
         .push_opcode(opcodes::all::OP_IF)
         .push_slice(b"ord")
-        .push_slice(&[1])
+        .push_slice([1])
         .push_slice(b"text/plain;charset=utf-8")
-        .push_slice(&[])
+        .push_slice([])
         .push_slice(b"foo")
         .push_opcode(opcodes::all::OP_ENDIF)
         .push_opcode(opcodes::OP_FALSE)
         .push_opcode(opcodes::all::OP_IF)
         .push_slice(b"ord")
-        .push_slice(&[1])
+        .push_slice([1])
         .push_slice(b"text/plain;charset=utf-8")
-        .push_slice(&[])
+        .push_slice([])
         .push_slice(b"bar")
         .push_opcode(opcodes::all::OP_ENDIF)
         .push_opcode(opcodes::OP_FALSE)
         .push_opcode(opcodes::all::OP_IF)
         .push_slice(b"ord")
-        .push_slice(&[1])
+        .push_slice([1])
         .push_slice(b"text/plain;charset=utf-8")
-        .push_slice(&[])
+        .push_slice([])
         .push_slice(b"qix")
         .push_opcode(opcodes::all::OP_ENDIF)
         .into_script();
 
-      let witness = Witness::from_vec(vec![script.into_bytes(), Vec::new()]);
+      let witness = Witness::from_slice(&[script.into_bytes(), Vec::new()]);
 
       let txid = context.rpc_server.broadcast_tx(TransactionTemplate {
         inputs: &[(1, 0, 0), (2, 0, 0), (3, 0, 0)],
@@ -2938,30 +2938,30 @@ mod tests {
         .push_opcode(opcodes::OP_FALSE)
         .push_opcode(opcodes::all::OP_IF)
         .push_slice(b"ord")
-        .push_slice(&[1])
+        .push_slice([1])
         .push_slice(b"text/plain;charset=utf-8")
-        .push_slice(&[])
+        .push_slice([])
         .push_slice(b"foo")
         .push_opcode(opcodes::all::OP_ENDIF)
         .push_opcode(opcodes::OP_FALSE)
         .push_opcode(opcodes::all::OP_IF)
         .push_slice(b"ord")
-        .push_slice(&[1])
+        .push_slice([1])
         .push_slice(b"text/plain;charset=utf-8")
-        .push_slice(&[])
+        .push_slice([])
         .push_slice(b"bar")
         .push_opcode(opcodes::all::OP_ENDIF)
         .push_opcode(opcodes::OP_FALSE)
         .push_opcode(opcodes::all::OP_IF)
         .push_slice(b"ord")
-        .push_slice(&[1])
+        .push_slice([1])
         .push_slice(b"text/plain;charset=utf-8")
-        .push_slice(&[])
+        .push_slice([])
         .push_slice(b"qix")
         .push_opcode(opcodes::all::OP_ENDIF)
         .into_script();
 
-      let witness = Witness::from_vec(vec![script.into_bytes(), Vec::new()]);
+      let witness = Witness::from_slice(&[script.into_bytes(), Vec::new()]);
 
       let txid = context.rpc_server.broadcast_tx(TransactionTemplate {
         inputs: &[(1, 0, 0)],
