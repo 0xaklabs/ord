@@ -1,3 +1,5 @@
+use crate::index::InscriptionOutput;
+
 use {
   self::{
     deserialize_from_str::DeserializeFromStr,
@@ -15,7 +17,7 @@ use {
     extract::{Extension, Path, Query},
     headers::UserAgent,
     http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
-    response::{IntoResponse, Redirect, Response},
+    response::{IntoResponse, Json, Redirect, Response},
     routing::get,
     Router, TypedHeader,
   },
@@ -85,6 +87,12 @@ impl Display for StaticHtml {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     f.write_str(self.html)
   }
+}
+
+// 接口定义一下
+#[derive(Serialize, Deserialize)]
+struct ApiInscription {
+  inscription_id: String,
 }
 
 #[derive(Debug, Parser)]
@@ -172,6 +180,8 @@ impl Server {
         .route("/static/*path", get(Self::static_asset))
         .route("/status", get(Self::status))
         .route("/tx/:txid", get(Self::transaction))
+        // Extra
+        .route("/api/inscriptions/:address", get(Self::inscriptions_by_address))
         .layer(Extension(index))
         .layer(Extension(page_config))
         .layer(Extension(Arc::new(config)))
@@ -629,7 +639,7 @@ impl Server {
 
     let chain = page_config.chain;
     match chain {
-      Chain::Mainnet => builder.title("Inscriptions"),
+      Chain::Mainnet => builder.title("Inscriptions".to_owned()),
       _ => builder.title(format!("Inscriptions – {chain:?}")),
     };
 
@@ -865,6 +875,15 @@ impl Server {
       Media::Unknown => Ok(PreviewUnknownHtml.into_response()),
       Media::Video => Ok(PreviewVideoHtml { inscription_id }.into_response()),
     }
+  }
+
+  // 下面是新加的
+  async fn inscriptions_by_address(
+    Extension(index): Extension<Arc<Index>>,
+    Path(address): Path<String>,
+  ) -> ServerResult<Json<Vec<InscriptionOutput>>> {
+    let data = index.get_inscriptions_by_address(&address).await?;
+    Ok(Json(data))
   }
 
   async fn inscription(

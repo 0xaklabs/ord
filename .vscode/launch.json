@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/ord",
+      "args": ["--rpc-url", "http://135.181.57.119:8332", "--bitcoin-rpc-user", "akbitcoin", "--bitcoin-rpc-pass", "axmTeRlpaQkr_pAnItIR-bCM-f0vVqhcNA1VYxeMd8M=", "server"],
+      "cwd": "${workspaceFolder}",
+      "sourceLanguages": ["rust"],
+      "cargo": {
+        "args": ["build"]
+      }
+    }
+  ]
+}

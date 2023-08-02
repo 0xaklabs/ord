@@ -17,6 +17,7 @@ use {
     Database, MultimapTable, MultimapTableDefinition, ReadableMultimapTable, ReadableTable, Table,
     TableDefinition, WriteTransaction,
   },
+  reqwest::Client as ReqwestClient,
   std::collections::HashMap,
   std::io::{BufWriter, Write},
   std::sync::atomic::{self, AtomicBool},
@@ -65,6 +66,29 @@ pub(crate) struct Index {
   height_limit: Option<u64>,
   options: Options,
   reorged: AtomicBool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct InscriptionOutput {
+  pub inscription: InscriptionId,
+  pub location: SatPoint,
+  pub explorer: String,
+}
+
+// #[derive(Debug, Deserialize)]
+// struct UtxoStatus {
+//   confirmed: bool,
+//   block_height: u32,
+//   block_hash: String,
+//   block_time: u64,
+// }
+
+#[derive(Debug, Deserialize)]
+struct Utxo {
+  txid: String,
+  vout: u32,
+  // status: UtxoStatus,
+  value: u64,
 }
 
 #[derive(Debug, PartialEq)]
@@ -292,6 +316,28 @@ impl Index {
         ));
       }
     }
+
+    Ok(utxos)
+  }
+
+  pub(crate) async fn get_unspent_outputs_by_address(
+    &self,
+    address: &str,
+  ) -> Result<BTreeMap<OutPoint, Amount>> {
+    let url = format!("https://mempool.space/api/address/{}/utxo", address);
+    let client = ReqwestClient::new();
+    let response = client.get(&url).send().await?;
+    let text = response.text().await?;
+    let utxo_list: Vec<Utxo> = serde_json::from_str(&text)?;
+
+    let mut utxos = BTreeMap::new();
+    for utxo in utxo_list {
+      let outpoint = OutPoint::from_str(&format!("{}:{}", utxo.txid, utxo.vout))?;
+      let amount = Amount::from_sat(utxo.value);
+
+      utxos.insert(outpoint, amount);
+    }
+    println!("{:?}", utxos);
 
     Ok(utxos)
   }
@@ -590,6 +636,7 @@ impl Index {
     {
       return Ok(None);
     }
+    // println!("{:?}", inscription_id);
 
     Ok(self.get_transaction(inscription_id.txid)?.and_then(|tx| {
       Inscription::from_transaction(&tx)
@@ -613,6 +660,28 @@ impl Index {
       .map(|(_satpoint, inscription_id)| inscription_id)
       .collect(),
     )
+  }
+
+  pub(crate) async fn get_inscriptions_by_address(
+    &self,
+    address: &str,
+  ) -> Result<Vec<InscriptionOutput>> {
+    let inscriptions = self.get_inscriptions(None)?;
+    // println!("{:?}", inscriptions);
+    let unspent_outputs = self.get_unspent_outputs_by_address(address).await?;
+
+    let mut output = Vec::new();
+
+    for (location, inscription) in inscriptions {
+      if unspent_outputs.contains_key(&location.outpoint) {
+        output.push(InscriptionOutput {
+          location,
+          inscription,
+          explorer: format!("https://ordinals.com/inscription/{inscription}"),
+        });
+      }
+    }
+    Ok(output)
   }
 
   #[cfg(test)]
