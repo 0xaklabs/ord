@@ -69,8 +69,9 @@ pub(crate) struct Index {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct InscriptionOutput {
-  pub inscription: InscriptionId,
+pub(crate) struct InscriptionOutput {
+  pub(crate) inscription_id: InscriptionId,
+  pub(crate) inscription: Inscription,
   // pub location: SatPoint,
   pub explorer: String,
 }
@@ -674,10 +675,12 @@ impl Index {
 
     for (location, _amount) in unspent_outputs {
       let inscriptions = self.get_inscriptions_on_output(location)?;
-      for inscription in inscriptions {
+      for inscription_id in inscriptions {
+        let inscription = self.get_inscription_by_id(inscription_id)?.unwrap();
         output.push(InscriptionOutput {
+          inscription_id,
           inscription,
-          explorer: format!("https://ordinals.com/inscription/{inscription}"),
+          explorer: format!("https://ordinals.com/inscription/{inscription_id}"),
         });
       }
     }
