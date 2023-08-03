@@ -71,7 +71,7 @@ pub(crate) struct Index {
 #[derive(Serialize, Deserialize)]
 pub struct InscriptionOutput {
   pub inscription: InscriptionId,
-  pub location: SatPoint,
+  // pub location: SatPoint,
   pub explorer: String,
 }
 
@@ -666,16 +666,16 @@ impl Index {
     &self,
     address: &str,
   ) -> Result<Vec<InscriptionOutput>> {
-    let inscriptions = self.get_inscriptions(None)?;
+    // let inscriptions = self.get_inscriptions(None)?;
     // println!("{:?}", inscriptions);
     let unspent_outputs = self.get_unspent_outputs_by_address(address).await?;
 
     let mut output = Vec::new();
 
-    for (location, inscription) in inscriptions {
-      if unspent_outputs.contains_key(&location.outpoint) {
+    for (location, _amount) in unspent_outputs {
+      let inscriptions = self.get_inscriptions_on_output(location)?;
+      for inscription in inscriptions {
         output.push(InscriptionOutput {
-          location,
           inscription,
           explorer: format!("https://ordinals.com/inscription/{inscription}"),
         });
