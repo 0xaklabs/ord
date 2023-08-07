@@ -182,7 +182,7 @@ impl Server {
         .route("/tx/:txid", get(Self::transaction))
         // Api
         .route("/api/inscriptions/:address", get(Self::inscriptions_by_address))
-        .route("/api/inscriptions/:inscription_id", get(Self::inscription_by_id))
+        .route("/api/inscription/:inscription_id", get(Self::inscription_by_id))
         .layer(Extension(index))
         .layer(Extension(page_config))
         .layer(Extension(Arc::new(config)))
