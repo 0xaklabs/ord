@@ -86,13 +86,12 @@ pub(crate) struct InscriptionOutput {
   pub(crate) explorer: String,
   pub(crate) timestamp: u32,
   pub(crate) output: OutPoint,
-  pub(crate) output_value: TxOut,
+  pub(crate) output_value: u64,
 }
-#[derive(Debug, Deserialize)]
-struct Utxo {
+#[derive(Debug, Serialize, Deserialize)]
+pub(crate) struct Utxo {
   txid: String,
   vout: u32,
-  // status: UtxoStatus,
   value: u64,
 }
 
@@ -325,26 +324,34 @@ impl Index {
     Ok(utxos)
   }
 
-  pub(crate) async fn get_unspent_outputs_by_address(
+  // pub(crate) async fn get_unspent_outputs_by_address(
+  //   &self,
+  //   address: &str,
+  // ) -> Result<BTreeMap<OutPoint, Amount>> {
+  //   let utxo_list: Vec<Utxo> = self.get_unspent_outputs_with_value_by_address(address).await?;
+
+  //   let mut utxos = BTreeMap::new();
+  //   for utxo in utxo_list {
+  //     let outpoint = OutPoint::from_str(&format!("{}:{}", utxo.txid, utxo.vout))?;
+  //     let amount = Amount::from_sat(utxo.value);
+
+  //     utxos.insert(outpoint, amount);
+  //   }
+
+  //   Ok(utxos)
+  // }
+
+  pub(crate) async fn get_unspent_outputs_with_value_by_address(
     &self,
     address: &str,
-  ) -> Result<BTreeMap<OutPoint, Amount>> {
+  ) -> Result<Vec<Utxo>> {
     let url = format!("https://mempool.space/api/address/{}/utxo", address);
     let client = ReqwestClient::new();
     let response = client.get(&url).send().await?;
     let text = response.text().await?;
     let utxo_list: Vec<Utxo> = serde_json::from_str(&text)?;
 
-    let mut utxos = BTreeMap::new();
-    for utxo in utxo_list {
-      let outpoint = OutPoint::from_str(&format!("{}:{}", utxo.txid, utxo.vout))?;
-      let amount = Amount::from_sat(utxo.value);
-
-      utxos.insert(outpoint, amount);
-    }
-    println!("{:?}", utxos);
-
-    Ok(utxos)
+    Ok(utxo_list)
   }
 
   pub(crate) fn get_unspent_output_ranges(
@@ -641,7 +648,6 @@ impl Index {
     {
       return Ok(None);
     }
-    // println!("{:?}", inscription_id);
 
     Ok(self.get_transaction(inscription_id.txid)?.and_then(|tx| {
       Inscription::from_transaction(&tx)
@@ -667,60 +673,14 @@ impl Index {
     )
   }
 
-  // Api
-  pub(crate) async fn api_get_inscriptions_by_address(
+  pub(crate) fn get_inscription_output_by_id(
     &self,
-    address: &str,
-  ) -> Result<Vec<InscriptionOutput>> {
-    let unspent_outputs = self.get_unspent_outputs_by_address(address).await?;
-
-    let mut output = Vec::new();
-
-    for (location, _amount) in unspent_outputs {
-      let inscriptions = self.get_inscriptions_on_output(location)?;
-      for inscription_id in inscriptions {
-        let inscription = self.get_inscription_by_id(inscription_id)?.unwrap();
-        let entry = self.get_inscription_entry(inscription_id)?.unwrap();
-        let location = self
-          .get_inscription_satpoint_by_id(inscription_id)?
-          .unwrap();
-        let output_value = 
-          self.get_transaction(location.outpoint.txid)?
-          .unwrap()
-          .output
-          .into_iter()
-          .nth(location.outpoint.vout.try_into().unwrap()).unwrap();
-
-        output.push(InscriptionOutput {
-          inscription_id,
-          inscription: DisplayInscription { 
-            body: String::from_utf8(inscription.body.unwrap())?,
-            content_type: String::from_utf8(inscription.content_type.unwrap())?,
-          },
-          location,
-          explorer: format!("https://ordinals.com/inscription/{inscription_id}"),
-          genesis_fee: entry.fee,
-          genesis_height: entry.height,
-          number: entry.number,
-          sat: entry.sat.unwrap(),
-          timestamp: entry.timestamp,
-          output: location.outpoint,
-          output_value,
-        });
-      }
-    }
-    Ok(output)
-  }
-
-  pub(crate) async fn api_get_inscription_by_id(
-    &self,
-    inscription_id: &str,
+    inscription_id: InscriptionId,
   ) -> Result<InscriptionOutput> {
-    let id = InscriptionId::from_str(inscription_id)?;
-    let inscription = self.get_inscription_by_id(id)?.unwrap();
-    let location = self.get_inscription_satpoint_by_id(id)?.unwrap();
-    let entry = self.get_inscription_entry(id)?.unwrap();
-    let output_value = 
+    let inscription = self.get_inscription_by_id(inscription_id)?.unwrap();
+    let location = self.get_inscription_satpoint_by_id(inscription_id)?.unwrap();
+    let entry = self.get_inscription_entry(inscription_id)?.unwrap();
+    let tx_output = 
           self.get_transaction(location.outpoint.txid)?
           .unwrap()
           .output
@@ -728,7 +688,7 @@ impl Index {
           .nth(location.outpoint.vout.try_into().unwrap()).unwrap();
 
     Ok(InscriptionOutput {
-      inscription_id: id,
+      inscription_id,
       inscription: DisplayInscription { 
         body: String::from_utf8(inscription.body.unwrap())?,
         content_type: String::from_utf8(inscription.content_type.unwrap())?,
@@ -739,10 +699,57 @@ impl Index {
       number: entry.number,
       sat: entry.sat.unwrap(),
       timestamp: entry.timestamp,
-      explorer: format!("https://ordinals.com/inscription/{id}"),
+      explorer: format!("https://ordinals.com/inscription/{inscription_id}"),
       output: location.outpoint,
-      output_value,
+      output_value: tx_output.value,
     })
+  }
+
+  // Api
+  pub(crate) async fn api_get_inscriptions_by_address(
+    &self,
+    address: &str,
+  ) -> Result<Vec<InscriptionOutput>> {
+    let unspent_outputs = self.get_unspent_outputs_with_value_by_address(address).await?;
+
+    let mut output = Vec::new();
+
+    for utxo in unspent_outputs {
+      let outpoint = OutPoint::from_str(&format!("{}:{}", utxo.txid, utxo.vout))?;
+      let inscriptions = self.get_inscriptions_on_output(outpoint)?;
+      for inscription_id in inscriptions {
+        output.push(self.get_inscription_output_by_id(inscription_id)?);
+      }
+    }
+    Ok(output)
+  }
+
+  pub(crate) async fn api_get_inscription_by_id(
+    &self,
+    inscription_id: &str,
+  ) -> Result<InscriptionOutput> {
+    let id = InscriptionId::from_str(inscription_id)?;
+    let output = self.get_inscription_output_by_id(id)?;
+    Ok(output)
+  }
+
+  pub(crate) async fn api_get_utxo_by_address(
+    &self,
+    address: &str,
+  ) -> Result<Vec<Utxo>> {
+    let unspent_outputs = self.get_unspent_outputs_with_value_by_address(address).await?;
+
+    let mut output = Vec::new();
+
+    for utxo in unspent_outputs {
+      let outpoint = OutPoint::from_str(&format!("{}:{}", utxo.txid, utxo.vout))?;
+      let inscriptions = self.get_inscriptions_on_output(outpoint)?;
+
+      if inscriptions.is_empty() {
+        output.push(utxo)
+      }
+    }
+    Ok(output)
   }
 
   #[cfg(test)]

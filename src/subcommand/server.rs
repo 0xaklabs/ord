@@ -1,4 +1,4 @@
-use crate::index::InscriptionOutput;
+use crate::index::{InscriptionOutput, Utxo};
 
 use {
   self::{
@@ -183,6 +183,7 @@ impl Server {
         // Api
         .route("/api/inscriptions/:address", get(Self::inscriptions_by_address))
         .route("/api/inscription/:inscription_id", get(Self::inscription_by_id))
+        .route("/api/:address/utxo", get(Self::utxo_by_address))
         .layer(Extension(index))
         .layer(Extension(page_config))
         .layer(Extension(Arc::new(config)))
@@ -892,6 +893,14 @@ impl Server {
     Path(inscription_id): Path<String>,
   ) -> ServerResult<Json<InscriptionOutput>> {
     let data = index.api_get_inscription_by_id(&inscription_id).await?;
+    Ok(Json(data))
+  }
+
+  async fn utxo_by_address(
+    Extension(index): Extension<Arc<Index>>,
+    Path(address): Path<String>,
+  ) -> ServerResult<Json<Vec<Utxo>>> {
+    let data = index.api_get_utxo_by_address(&address).await?;
     Ok(Json(data))
   }
 
