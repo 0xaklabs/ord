@@ -69,9 +69,15 @@ pub(crate) struct Index {
 }
 
 #[derive(Serialize, Deserialize)]
+pub(crate) struct DisplayInscription {
+  body: String,
+  content_type: String,
+}
+
+#[derive(Serialize, Deserialize)]
 pub(crate) struct InscriptionOutput {
   pub(crate) inscription_id: InscriptionId,
-  pub(crate) inscription: Inscription,
+  pub(crate) inscription: DisplayInscription,
   pub(crate) location: SatPoint,
   pub(crate) genesis_fee: u64,
   pub(crate) genesis_height: u64,
@@ -679,7 +685,10 @@ impl Index {
 
         output.push(InscriptionOutput {
           inscription_id,
-          inscription,
+          inscription: DisplayInscription { 
+            body: String::from_utf8(inscription.body.unwrap())?,
+            content_type: String::from_utf8(inscription.content_type.unwrap())?,
+          },
           location,
           explorer: format!("https://ordinals.com/inscription/{inscription_id}"),
           genesis_fee: entry.fee,
@@ -703,7 +712,10 @@ impl Index {
     let entry = self.get_inscription_entry(id)?.unwrap();
     Ok(InscriptionOutput {
       inscription_id: id,
-      inscription,
+      inscription: DisplayInscription { 
+        body: String::from_utf8(inscription.body.unwrap())?,
+        content_type: String::from_utf8(inscription.content_type.unwrap())?,
+      },
       location,
       genesis_fee: entry.fee,
       genesis_height: entry.height,
