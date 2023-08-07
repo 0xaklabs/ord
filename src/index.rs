@@ -85,6 +85,8 @@ pub(crate) struct InscriptionOutput {
   pub(crate) sat: Sat,
   pub(crate) explorer: String,
   pub(crate) timestamp: u32,
+  pub(crate) output: OutPoint,
+  pub(crate) output_value: TxOut,
 }
 #[derive(Debug, Deserialize)]
 struct Utxo {
@@ -682,6 +684,12 @@ impl Index {
         let location = self
           .get_inscription_satpoint_by_id(inscription_id)?
           .unwrap();
+        let output_value = 
+          self.get_transaction(location.outpoint.txid)?
+          .unwrap()
+          .output
+          .into_iter()
+          .nth(location.outpoint.vout.try_into().unwrap()).unwrap();
 
         output.push(InscriptionOutput {
           inscription_id,
@@ -696,6 +704,8 @@ impl Index {
           number: entry.number,
           sat: entry.sat.unwrap(),
           timestamp: entry.timestamp,
+          output: location.outpoint,
+          output_value,
         });
       }
     }
@@ -710,6 +720,13 @@ impl Index {
     let inscription = self.get_inscription_by_id(id)?.unwrap();
     let location = self.get_inscription_satpoint_by_id(id)?.unwrap();
     let entry = self.get_inscription_entry(id)?.unwrap();
+    let output_value = 
+          self.get_transaction(location.outpoint.txid)?
+          .unwrap()
+          .output
+          .into_iter()
+          .nth(location.outpoint.vout.try_into().unwrap()).unwrap();
+
     Ok(InscriptionOutput {
       inscription_id: id,
       inscription: DisplayInscription { 
@@ -723,6 +740,8 @@ impl Index {
       sat: entry.sat.unwrap(),
       timestamp: entry.timestamp,
       explorer: format!("https://ordinals.com/inscription/{id}"),
+      output: location.outpoint,
+      output_value,
     })
   }
 
