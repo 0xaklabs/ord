@@ -72,18 +72,14 @@ pub(crate) struct Index {
 pub(crate) struct InscriptionOutput {
   pub(crate) inscription_id: InscriptionId,
   pub(crate) inscription: Inscription,
-  // pub location: SatPoint,
-  pub explorer: String,
+  pub(crate) location: SatPoint,
+  pub(crate) genesis_fee: u64,
+  pub(crate) genesis_height: u64,
+  pub(crate) number: i64,
+  pub(crate) sat: Sat,
+  pub(crate) explorer: String,
+  pub(crate) timestamp: u32,
 }
-
-// #[derive(Debug, Deserialize)]
-// struct UtxoStatus {
-//   confirmed: bool,
-//   block_height: u32,
-//   block_hash: String,
-//   block_time: u64,
-// }
-
 #[derive(Debug, Deserialize)]
 struct Utxo {
   txid: String,
@@ -663,12 +659,11 @@ impl Index {
     )
   }
 
-  pub(crate) async fn get_inscriptions_by_address(
+  // Api
+  pub(crate) async fn api_get_inscriptions_by_address(
     &self,
     address: &str,
   ) -> Result<Vec<InscriptionOutput>> {
-    // let inscriptions = self.get_inscriptions(None)?;
-    // println!("{:?}", inscriptions);
     let unspent_outputs = self.get_unspent_outputs_by_address(address).await?;
 
     let mut output = Vec::new();
@@ -677,14 +672,46 @@ impl Index {
       let inscriptions = self.get_inscriptions_on_output(location)?;
       for inscription_id in inscriptions {
         let inscription = self.get_inscription_by_id(inscription_id)?.unwrap();
+        let entry = self.get_inscription_entry(inscription_id)?.unwrap();
+        let location = self
+          .get_inscription_satpoint_by_id(inscription_id)?
+          .unwrap();
+
         output.push(InscriptionOutput {
           inscription_id,
           inscription,
+          location,
           explorer: format!("https://ordinals.com/inscription/{inscription_id}"),
+          genesis_fee: entry.fee,
+          genesis_height: entry.height,
+          number: entry.number,
+          sat: entry.sat.unwrap(),
+          timestamp: entry.timestamp,
         });
       }
     }
     Ok(output)
+  }
+
+  pub(crate) async fn api_get_inscription_by_id(
+    &self,
+    inscription_id: &str,
+  ) -> Result<InscriptionOutput> {
+    let id = InscriptionId::from_str(inscription_id)?;
+    let inscription = self.get_inscription_by_id(id)?.unwrap();
+    let location = self.get_inscription_satpoint_by_id(id)?.unwrap();
+    let entry = self.get_inscription_entry(id)?.unwrap();
+    Ok(InscriptionOutput {
+      inscription_id: id,
+      inscription,
+      location,
+      genesis_fee: entry.fee,
+      genesis_height: entry.height,
+      number: entry.number,
+      sat: entry.sat.unwrap(),
+      timestamp: entry.timestamp,
+      explorer: format!("https://ordinals.com/inscription/{id}"),
+    })
   }
 
   #[cfg(test)]

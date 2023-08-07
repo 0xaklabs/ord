@@ -180,8 +180,9 @@ impl Server {
         .route("/static/*path", get(Self::static_asset))
         .route("/status", get(Self::status))
         .route("/tx/:txid", get(Self::transaction))
-        // Extra
+        // Api
         .route("/api/inscriptions/:address", get(Self::inscriptions_by_address))
+        .route("/api/inscriptions/:inscription_id", get(Self::inscription_by_id))
         .layer(Extension(index))
         .layer(Extension(page_config))
         .layer(Extension(Arc::new(config)))
@@ -877,12 +878,20 @@ impl Server {
     }
   }
 
-  // 下面是新加的
+  // Api
   async fn inscriptions_by_address(
     Extension(index): Extension<Arc<Index>>,
     Path(address): Path<String>,
   ) -> ServerResult<Json<Vec<InscriptionOutput>>> {
-    let data = index.get_inscriptions_by_address(&address).await?;
+    let data = index.api_get_inscriptions_by_address(&address).await?;
+    Ok(Json(data))
+  }
+
+  async fn inscription_by_id(
+    Extension(index): Extension<Arc<Index>>,
+    Path(inscription_id): Path<String>,
+  ) -> ServerResult<Json<InscriptionOutput>> {
+    let data = index.api_get_inscription_by_id(&inscription_id).await?;
     Ok(Json(data))
   }
 
