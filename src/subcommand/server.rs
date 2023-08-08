@@ -881,22 +881,25 @@ impl Server {
 
   // Api
   async fn inscriptions_by_address(
+    Extension(page_config): Extension<Arc<PageConfig>>,
     Extension(index): Extension<Arc<Index>>,
     Path(address): Path<String>,
   ) -> ServerResult<Json<Vec<InscriptionOutput>>> {
-    let data = index.api_get_inscriptions_by_address(&address).await?;
+    let data = index.api_get_inscriptions_by_address(page_config.chain, &address).await?;
     Ok(Json(data))
   }
 
   async fn inscription_by_id(
+    Extension(page_config): Extension<Arc<PageConfig>>,
     Extension(index): Extension<Arc<Index>>,
     Path(inscription_id): Path<String>,
   ) -> ServerResult<Json<InscriptionOutput>> {
-    let data = index.api_get_inscription_by_id(&inscription_id).await?;
+    let data = index.api_get_inscription_by_id(page_config.chain, &inscription_id).await?;
     Ok(Json(data))
   }
 
   async fn utxo_by_address(
+    Extension(_page_config): Extension<Arc<PageConfig>>,
     Extension(index): Extension<Arc<Index>>,
     Path(address): Path<String>,
   ) -> ServerResult<Json<Vec<Utxo>>> {
