@@ -83,6 +83,12 @@ pub(crate) struct InscriptionOutput {
   pub(crate) output: OutPoint,
   pub(crate) output_value: u64,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+struct UtxoResponse {
+  notice: String,
+  unspent_outputs: Vec<Utxo>,
+}
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct Utxo {
   tx_hash_big_endian: String,
@@ -344,7 +350,8 @@ impl Index {
     let client = ReqwestClient::new();
     let response = client.get(&url).send().await?;
     let text = response.text().await?;
-    let utxo_list: Vec<Utxo> = serde_json::from_str(&text)?;
+    let utxo_res: UtxoResponse = serde_json::from_str(&text)?;
+    let utxo_list: Vec<Utxo> = utxo_res.unspent_outputs;
 
     Ok(utxo_list)
   }
