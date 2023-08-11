@@ -73,7 +73,7 @@ pub(crate) struct Index {
 pub(crate) struct InscriptionOutput {
   pub(crate) inscription_id: InscriptionId,
   pub(crate) content_type: String,
-  pub(crate) owner: Address,
+  pub(crate) owner: String,
   pub(crate) location: SatPoint,
   pub(crate) genesis_fee: u64,
   pub(crate) genesis_height: u64,
@@ -825,7 +825,7 @@ impl Index {
       explorer: format!("https://ordinals.com/inscription/{inscription_id}"),
       output: location.outpoint,
       output_value: tx_output.value,
-      owner: chain.address_from_script(&tx_output.script_pubkey)?,
+      owner: chain.address_from_script(&tx_output.script_pubkey)?.to_string(),
     })
   }
 
