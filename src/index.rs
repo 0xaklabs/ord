@@ -69,7 +69,6 @@ pub(crate) struct Index {
 }
 
 #[derive(Serialize, Deserialize)]
-<<<<<<< HEAD
 pub(crate) struct InscriptionOutput {
   pub(crate) inscription_id: InscriptionId,
   pub(crate) content_type: String,
@@ -94,27 +93,6 @@ struct UtxoResponse {
 pub(crate) struct Utxo {
   tx_hash_big_endian: String,
   tx_output_n: u32,
-=======
-pub struct InscriptionOutput {
-  pub inscription: InscriptionId,
-  pub location: SatPoint,
-  pub explorer: String,
-}
-
-// #[derive(Debug, Deserialize)]
-// struct UtxoStatus {
-//   confirmed: bool,
-//   block_height: u32,
-//   block_hash: String,
-//   block_time: u64,
-// }
-
-#[derive(Debug, Deserialize)]
-struct Utxo {
-  txid: String,
-  vout: u32,
-  // status: UtxoStatus,
->>>>>>> fa21ef4 (Finish search inscriptions by address)
   value: u64,
 }
 
@@ -362,7 +340,6 @@ impl Index {
     Ok(utxos)
   }
 
-<<<<<<< HEAD
   // pub(crate) async fn get_unspent_outputs_by_address(
   //   &self,
   //   address: &str,
@@ -392,28 +369,6 @@ impl Index {
     let utxo_list: Vec<Utxo> = utxo_res.unspent_outputs;
 
     Ok(utxo_list)
-=======
-  pub(crate) async fn get_unspent_outputs_by_address(
-    &self,
-    address: &str,
-  ) -> Result<BTreeMap<OutPoint, Amount>> {
-    let url = format!("https://mempool.space/api/address/{}/utxo", address);
-    let client = ReqwestClient::new();
-    let response = client.get(&url).send().await?;
-    let text = response.text().await?;
-    let utxo_list: Vec<Utxo> = serde_json::from_str(&text)?;
-
-    let mut utxos = BTreeMap::new();
-    for utxo in utxo_list {
-      let outpoint = OutPoint::from_str(&format!("{}:{}", utxo.txid, utxo.vout))?;
-      let amount = Amount::from_sat(utxo.value);
-
-      utxos.insert(outpoint, amount);
-    }
-    println!("{:?}", utxos);
-
-    Ok(utxos)
->>>>>>> fa21ef4 (Finish search inscriptions by address)
   }
 
   pub(crate) fn get_unspent_output_ranges(
